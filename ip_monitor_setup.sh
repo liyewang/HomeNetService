@@ -38,6 +38,9 @@ ip_monitor_update() {
             echo 'warning: Download failed! Use existing script instead.'
         fi
     else
+        if [ -f "${ip_monitor_path}/ip_monitor.py" ]; then
+            mv "${ip_monitor_path}/ip_monitor.py"{,.old}
+        fi
         install -m 755 "${ip_monitor_path}/ip_monitor.py.new" "${ip_monitor_path}/ip_monitor.py"
         rm "${ip_monitor_path}/ip_monitor.py.new"
     fi
