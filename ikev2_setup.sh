@@ -187,7 +187,7 @@ set_filter() {
         filter_opt="1"
     fi
     if [ "${filter_opt}" = "1" ]; then
-        ip address | grep inet
+        ip address
         echo
         read -p "Select the interface listed above that connects the Internet[${interface}]: " input
         if [ "${input}" != "" ]; then interface=${input}; fi
