@@ -35,12 +35,21 @@ if [ -f "/etc/iptables.rules" ]; then
     mv --backup=t /etc/iptables.rules{,.save}
 fi
 iptables-save > /etc/iptables.rules
+cat > /etc/network/if-up.d/iptables<<-EOF
+#!/bin/sh
+iptables-restore < /etc/iptables.rules
+EOF
+chmod +x /etc/network/if-up.d/iptables
 
 # ip rule and ip route config
 cat > /etc/network/if-up.d/tproxy<<-EOF
 #!/bin/sh
-ip rule add fwmark 1 table 100
-ip route add local 0.0.0.0/0 dev lo table 100
+if [ -z "`ip rule list fwmark 1`" ]; then
+    ip rule add fwmark 1 table 100
+fi
+if [ -z "`ip route list table 100`" ]; then
+    ip route add local 0.0.0.0/0 dev lo table 100
+fi
 EOF
 chmod +x /etc/network/if-up.d/tproxy
 
