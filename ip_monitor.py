@@ -45,15 +45,21 @@ def ipsec_update():
         fileObject = open(cert_info_path, 'r')
         fileStr = fileObject.read()
         fileObject.close()
-        fileStrUpdate = re.sub(ip_prev, ip, fileStr)
+        searchObject = re.search(r'ADDR=(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', fileStr)
+        if searchObject:
+            cert_addr_prev = searchObject.group(1)
+        else:
+            log('Get previous cert address failed.')
+            raise RuntimeError('Key process failed.')
+        fileStrUpdate = re.sub(cert_addr_prev, ip, fileStr)
         fileObject = open(cert_info_path, 'w')
         fileObject.write(fileStrUpdate)
         fileObject.close
     except:
-        log("Update cert_info failed.")
-        return
+        log('Update cert_info failed.')
+        raise RuntimeError('Key process failed.')
     else:
-        log("Update cert_info success.")
+        log('Update cert_info success.')
         # Extract cert_info
         cert_C = None
         searchObject = re.search(r'C=(.+)', fileStrUpdate)
@@ -72,7 +78,7 @@ def ipsec_update():
             log('Extract cert_info success.')
         else:
             log('Extract cert_info failed.')
-            return
+            raise RuntimeError('Key process failed.')
 
     # Update server.cert.pem
     try:
@@ -83,30 +89,30 @@ def ipsec_update():
                 --dn "C={cert_C}, O={cert_O}, CN={addr_public}" --san="{addr_public}" \
                 --flag serverAuth --flag ikeIntermediate \
                 --outform pem > {cert_path}/server.cert.pem')
-        os.system(f'cp -f ${cert_path}/server.cert.pem /etc/ipsec.d/certs/')
+        os.system(f'cp -f {cert_path}/server.cert.pem /etc/ipsec.d/certs/')
     except:
-        log("Update server.cert.pem failed.")
-        return
+        log('Update server.cert.pem failed.')
+        raise RuntimeError('Key process failed.')
     else:
-        log("Update server.cert.pem success.")
+        log('Update server.cert.pem success.')
 
     # Update ipsec.conf
     try:
         fileObject = open(ipsec_conf_path, 'r')
         fileStr = fileObject.read()
         fileObject.close()
-        fileStrUpdate = re.sub(ip_prev, ip, fileStr)
+        fileStrUpdate = re.sub(cert_addr_prev, ip, fileStr)
         fileObject = open(ipsec_conf_path, 'w')
         fileObject.write(fileStrUpdate)
         fileObject.close
     except:
-        log("Update ipsec.conf failed.")
-        return
+        log('Update ipsec.conf failed.')
+        raise RuntimeError('Key process failed.')
     else:
-        log("Update ipsec.conf success.")
+        log('Update ipsec.conf success.')
 
     # Reload ipsec
-    log("Reload ipsec.")
+    log('Reload ipsec.')
     os.system('systemctl daemon-reload')
     os.system('systemctl restart ipsec')
     return
@@ -125,7 +131,7 @@ except:
         except:
             ip = ''
 
-# Verify IP address
+# Verify current IP address
 searchObject = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', ip)
 if searchObject:
     ip = searchObject.group()
@@ -135,6 +141,12 @@ if searchObject:
     fileObject.seek(0)
     ip_prev = fileObject.read()
     fileObject.close()
+    # Verify previous IP address
+    searchObject = re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', ip_prev)
+    if searchObject:
+        ip_prev = searchObject.group()
+    else:
+        log('Get previous IP address failed.')
 
     # Check IP address change
     if ip != ip_prev:
@@ -157,9 +169,9 @@ if searchObject:
                 smtpObject.sendmail(mail_from_addr, [mail_to_addr], message.as_string())
                 log(f'Mail to [{mail_to_addr}] sent.')
         except:
-            log("Sending mail failed.")
+            log('Sending mail failed.')
         else:
-            log("Sending mail success.")
+            log('Sending mail success.')
         finally:
             smtpObject.quit()
     else:
