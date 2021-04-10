@@ -49,7 +49,7 @@ ip_monitor_update() {
 ip_monitor_crontab() {
     crontab_list=`cat ${crontab_path}`
     crontab_prev=`cat ${crontab_path} | grep 'ip_monitor'`
-    crontab_update="* * * * * ${python3_path} ${ip_monitor_path}/ip_monitor.py"
+    crontab_update="* * * * * sudo ${python3_path} ${ip_monitor_path}/ip_monitor.py"
     if [ -z "${crontab_prev}" ]; then
         cat >> ${crontab_path}<<-EOF
 ${crontab_update}
