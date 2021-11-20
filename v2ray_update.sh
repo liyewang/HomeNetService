@@ -3,7 +3,7 @@
 DOWNLOAD_LINK_V2RAY="https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh"
 DOWNLOAD_LINK_DAT="https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-dat-release.sh"
 DOWNLOAD_LINK_H2Y="https://raw.githubusercontent.com/ToutyRater/V2Ray-SiteDAT/blob/master/geofiles/h2y.dat"
-V2RAY="/home/pi/v2ray"
+V2RAY="/root/v2ray"
 V2RAY_DAT="/usr/local/share/v2ray"
 PROXY=
 

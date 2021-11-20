@@ -14,7 +14,7 @@ from email.header import Header
 ip_monitor_path = os.path.dirname(os.path.abspath(__file__))
 ip_store_path = f'{ip_monitor_path}/ip_address'
 log_path = f'{ip_monitor_path}/monitor.log'
-cert_path = '/home/pi/IPsec_Certs'
+cert_path = '/root/IPsec_Certs'
 cert_info_path = f'{cert_path}/cert_info'
 ipsec_conf_path = '/etc/ipsec.conf'
 
