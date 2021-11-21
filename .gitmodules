@@ -1,3 +1,6 @@
 [submodule "fhs-install-v2ray"]
 	path = fhs-install-v2ray
 	url = git@github.com:liyewang/fhs-install-v2ray.git
+[submodule "one-key-ikev2-vpn"]
+	path = one-key-ikev2-vpn
+	url = git@github.com:liyewang/one-key-ikev2-vpn.git
