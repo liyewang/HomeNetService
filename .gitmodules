@@ -1,0 +1,3 @@
+[submodule "fhs-install-v2ray"]
+	path = fhs-install-v2ray
+	url = git@github.com:liyewang/fhs-install-v2ray.git
