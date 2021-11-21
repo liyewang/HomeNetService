@@ -208,7 +208,7 @@ set_filter() {
 install_strongswan() {
     apt update
     apt install strongswan strongswan-pki libcharon-extra-plugins libstrongswan-extra-plugins -y
-    systemctl enable strongswan
+    systemctl enable strongswan-starter
 }
 
 install_cert() {
