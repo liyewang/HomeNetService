@@ -19,7 +19,7 @@ evn_check() {
 
 v2ray_update() {
     echo "Downloading: $DOWNLOAD_LINK_V2RAY"
-    if ! curl ${PROXY} -L -H 'Cache-Control: no-cache' -o "${V2RAY}/install-release.sh.new" "$DOWNLOAD_LINK_V2RAY"; then
+    if ! curl -x "${PROXY}" -L -H 'Cache-Control: no-cache' -o "${V2RAY}/install-release.sh.new" "$DOWNLOAD_LINK_V2RAY"; then
         if [[ ! -f "${V2RAY}/install-release.sh" ]]; then
             echo 'error: Download failed! Please check your network or try again.'
             exit 1
@@ -30,12 +30,16 @@ v2ray_update() {
         install -m 755 "${V2RAY}/install-release.sh.new" "${V2RAY}/install-release.sh"
         rm "${V2RAY}/install-release.sh.new"
     fi
-    bash ${V2RAY}/install-release.sh
+    if [[ -z "${PROXY}" ]]; then
+        bash ${V2RAY}/install-release.sh
+    else
+        bash ${V2RAY}/install-release.sh -p "${PROXY}"
+    fi
 }
 
 geodat_update() {
     echo "Downloading: $DOWNLOAD_LINK_DAT"
-    if ! curl ${PROXY} -L -H 'Cache-Control: no-cache' -o "${V2RAY}/install-dat-release.sh.new" "$DOWNLOAD_LINK_DAT"; then
+    if ! curl -x "${PROXY}" -L -H 'Cache-Control: no-cache' -o "${V2RAY}/install-dat-release.sh.new" "$DOWNLOAD_LINK_DAT"; then
         if [[ ! -f "${V2RAY}/install-release.sh" ]]; then
             echo 'error: Download failed! Please check your network or try again.'
             exit 1
@@ -46,7 +50,11 @@ geodat_update() {
         install -m 755 "${V2RAY}/install-dat-release.sh.new" "${V2RAY}/install-dat-release.sh"
         rm "${V2RAY}/install-dat-release.sh.new"
     fi
-    bash ${V2RAY}/install-dat-release.sh
+    if [[ -z "${PROXY}" ]]; then
+        bash ${V2RAY}/install-dat-release.sh
+    else
+        bash ${V2RAY}/install-dat-release.sh -p "${PROXY}"
+    fi
 }
 
 h2ydat_update() {
@@ -55,7 +63,7 @@ h2ydat_update() {
         exit 1
     fi
     echo "Downloading: $DOWNLOAD_LINK_H2Y"
-    if ! curl ${PROXY} -L -H 'Cache-Control: no-cache' -o "${V2RAY_DAT}/h2y.dat.new" "$DOWNLOAD_LINK_H2Y"; then
+    if ! curl -x "${PROXY}" -L -H 'Cache-Control: no-cache' -o "${V2RAY_DAT}/h2y.dat.new" "$DOWNLOAD_LINK_H2Y"; then
         echo 'error: Download failed! Please check your network or try again.'
         exit 1
     else

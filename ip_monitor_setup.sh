@@ -24,13 +24,14 @@ install_cron() {
 }
 
 set_path() {
+    echo "Note: Privilege issue may occur under /root path."
     read -p "Input installation path[${ip_monitor_path}]: " input
     if [ "${input}" != "" ]; then ip_monitor_path=${input}; fi
 }
 
 ip_monitor_update() {
     echo "Downloading: $DOWNLOAD_LINK_IP_MONITOR"
-    if ! curl ${PROXY} -L -H 'Cache-Control: no-cache' -o "${ip_monitor_path}/ip_monitor.py.new" "$DOWNLOAD_LINK_IP_MONITOR"; then
+    if ! curl -x ${PROXY} -L -H 'Cache-Control: no-cache' -o "${ip_monitor_path}/ip_monitor.py.new" "$DOWNLOAD_LINK_IP_MONITOR"; then
         if [[ ! -f "${ip_monitor_path}/ip_monitor.py" ]]; then
             echo 'error: Download failed! Please check your network or try again.'
             exit 1
