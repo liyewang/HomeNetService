@@ -50,11 +50,7 @@ geodat_update() {
         install -m 755 "${V2RAY}/install-dat-release.sh.new" "${V2RAY}/install-dat-release.sh"
         rm "${V2RAY}/install-dat-release.sh.new"
     fi
-    if [[ -z "${PROXY}" ]]; then
-        bash ${V2RAY}/install-dat-release.sh
-    else
-        bash ${V2RAY}/install-dat-release.sh -p "${PROXY}"
-    fi
+    bash ${V2RAY}/install-dat-release.sh
 }
 
 h2ydat_update() {
