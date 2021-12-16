@@ -4,7 +4,7 @@ main() {
     privilege_check
     install_vsftpd
     config
-    echo 'Success'
+    echo "Success"
     exit 0
 }
 

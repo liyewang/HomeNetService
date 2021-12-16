@@ -23,11 +23,12 @@ interface="eth0"
 
 # VPN (IPsec)
 ip_peer="10.1.1.0/24"
+dns1="223.5.5.5"
+dns2="8.8.8.8"
 
 ##########################################
 
 main() {
-    echo "Loading. . ."
     if [ "$#" -eq '1' ]; then
         case "$1" in
             '--install')
@@ -57,12 +58,12 @@ main() {
                 exit 1
                 ;;
         esac
-    elif [ "$#" -gt '1' ]; then
-        echo "ERROR: Single option only."
+    else
+        echo "ERROR: Argument error."
         help_info
         exit 1
     fi
-    echo 'Success'
+    echo "Success"
     exit 0
 }
 
@@ -126,10 +127,8 @@ set_addr() {
     if [ "${input}" != "" ]; then addr_public=${input}; fi
     # Get local IP address of the server
     ip_local=`hostname -I | cut -d' ' -f 1`
-    dns1=${ip_local}
     read -p "Input primary DNS address[${dns1}]: " input
     if [ "${input}" != "" ]; then dns1=${input}; fi
-    dns2=${ip_local}
     read -p "Input secondary DNS address[${dns2}]: " input
     if [ "${input}" != "" ]; then dns2=${input}; fi
 }
@@ -443,22 +442,6 @@ charon {
 }
 
 include strongswan.d/*.conf
-
-# charon {
-#     load_modular = yes
-#     duplicheck {
-#         enable = no
-#     }
-#     compress = yes
-#     plugins {
-#         include strongswan.d/charon/*.conf
-#     }
-#     dns1 = ${dns1}
-#     dns2 = ${dns2}
-#     nbns1 = ${dns1}
-#     nbns2 = ${dns2}
-# }
-# include strongswan.d/*.conf
 EOF
 }
 

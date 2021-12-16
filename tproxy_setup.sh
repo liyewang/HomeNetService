@@ -17,6 +17,8 @@ iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
 # iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p tcp -j RETURN
 # iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
 iptables -t mangle -A V2RAY -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A V2RAY -d 172.16.0.0/12 -j RETURN
+iptables -t mangle -A V2RAY -d 10.0.0.0/8 -j RETURN
 iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port 12345 --tproxy-mark 1
 iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port 12345 --tproxy-mark 1
 iptables -t mangle -A PREROUTING -j V2RAY
@@ -27,6 +29,8 @@ iptables -t mangle -A V2RAY_MASK -d 255.255.255.255/32 -j RETURN
 # iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p tcp -j RETURN
 # iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
 iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A V2RAY_MASK -d 172.16.0.0/12 -j RETURN
+iptables -t mangle -A V2RAY_MASK -d 10.0.0.0/8 -j RETURN
 iptables -t mangle -A V2RAY_MASK -j RETURN -m mark --mark 0xff
 iptables -t mangle -A V2RAY_MASK -p udp -j MARK --set-mark 1
 iptables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-mark 1
@@ -46,10 +50,10 @@ chmod +x /etc/network/if-up.d/iptables
 # ip rule and ip route config
 cat > /etc/network/if-up.d/tproxy<<-EOF
 #!/bin/sh
-if [ -z "`ip rule list fwmark 1`" ]; then
+if [ -z "\`ip rule list fwmark 1\`" ]; then
     ip rule add fwmark 1 table 100
 fi
-if [ -z "`ip route list table 100`" ]; then
+if [ -z "\`ip route list table 100\`" ]; then
     ip route add local 0.0.0.0/0 dev lo table 100
 fi
 EOF
@@ -57,7 +61,7 @@ chmod +x /etc/network/if-up.d/tproxy
 
 # enable forward
 if [ "`sysctl -p | grep -xc "net.ipv4.ip_forward = 1"`" = "0" ]; then
-    cat net.ipv4.ip_forward=1 >> /etc/sysctl.conf
+    echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 fi
 
 # static gateway config
@@ -75,11 +79,11 @@ static routers=${gateway}
 EOF
         echo "Gateway configuration changed, reboot to take effect."
     else
-        echo "Please  manually configure the static gateway to the router this device is connected to."
+        echo "Please manually configure the static gateway to the router this device is connected to."
     fi
 else
-    echo "Please  manually configure the static gateway to the router this device is connected to."
+    echo "Please manually configure the static gateway to the router this device is connected to."
 fi
 
-echo 'Success'
+echo "Success"
 exit 0

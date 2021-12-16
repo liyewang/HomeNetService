@@ -3,8 +3,8 @@
 key_path="id_rsa.pub"
 
 opt=1
-echo '1. Create a key pair for this device'
-echo '2. Import a public key from other device'
+echo "1. Create a key pair for this device"
+echo "2. Import a public key from other device"
 echo
 read -p "Please input an option[${opt}]: " input
 if [ "${input}" != "" ]; then opt=${input}; fi
@@ -23,7 +23,7 @@ else
             chmod 600 ~/.ssh/authorized_keys
         fi
         cat ${key_path} >> ~/.ssh/authorized_keys
-        echo 'Success'
+        echo "Success"
     fi
 fi
 exit 0
