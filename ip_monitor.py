@@ -33,7 +33,7 @@ mail_text = 'Error message.'
 
 def log(msg):
     print(msg)
-    t = time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
+    t = time.strftime(r'%Y/%m/%d %H:%M:%S', time.localtime())
     fileObject = open(log_path, 'a')
     fileObject.write(f'{t}: {msg}\n')
     fileObject.close()

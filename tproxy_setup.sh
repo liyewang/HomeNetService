@@ -17,6 +17,7 @@ iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
 # iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p tcp -j RETURN
 # iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
 iptables -t mangle -A V2RAY -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A V2RAY -s 172.16.0.0/12 -j RETURN
 iptables -t mangle -A V2RAY -d 172.16.0.0/12 -j RETURN
 iptables -t mangle -A V2RAY -d 10.0.0.0/8 -j RETURN
 iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port 12345 --tproxy-mark 1
@@ -29,6 +30,7 @@ iptables -t mangle -A V2RAY_MASK -d 255.255.255.255/32 -j RETURN
 # iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p tcp -j RETURN
 # iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
 iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A V2RAY_MASK -s 172.16.0.0/12 -j RETURN
 iptables -t mangle -A V2RAY_MASK -d 172.16.0.0/12 -j RETURN
 iptables -t mangle -A V2RAY_MASK -d 10.0.0.0/8 -j RETURN
 iptables -t mangle -A V2RAY_MASK -j RETURN -m mark --mark 0xff
