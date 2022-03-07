@@ -1,10 +1,5 @@
 sensor:
   - platform: command_line
     name: Energy
-    command: "cat /root/energy_meter/energy_meter | cut -d ' ' -f 6"
-    unit_of_measurement: "kWh"
-  - platform: file
-    name: Energy
-    file_path: /root/energy_meter/energy_meter
-    value_template: "{{ value.split(' ')[5] }}"
+    command: "python /root/energy_meter/energy_meter.py read | cut -d ' ' -f 6"
     unit_of_measurement: "kWh"

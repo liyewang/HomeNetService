@@ -6,17 +6,17 @@ import random
 import re
 import time
 import os
+import sys
 import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
+import threading
+import socket
 
 # Energy Meter Config
 meter_user = 'user'
 meter_pass = 'pass'
 proxy = {}
-# proxy = {'http': 'http://101.231.121.17:80'}
-energy_prev = 61.16
-cost_prev = 43.48
 balance_low = -80
 #              Jan    Feb     Mar    Apr    May    Jun    Jul    Aug    Sep    Oct    Nov    Dec
 price_tab = [0.805, 0.711, 0.8251, 0.711, 0.711, 0.711, 0.738, 0.738, 0.738, 0.711, 0.711, 0.711]
@@ -24,6 +24,11 @@ data_intv = 30
 clock_offset = 1
 power_max = 15
 energy_err_max = 0.01
+
+# Communication Config
+host = 'localhost'
+port = 12345
+max_connect = 1
 
 # File Path
 energy_meter_path = os.path.dirname(os.path.abspath(__file__))
@@ -49,7 +54,6 @@ def log(msg):
     f = open(log_path, 'a')
     f.write(f'{t}: {msg}\n')
     f.close()
-    return
 
 def login(meter_user, meter_pass):
     url_login = 'http://tzjz.acrel-eem.com/Ajax/UserLogin.ashx?Id=' + str(random.random()) + '&username=' + meter_user + '&password=' + meter_pass
@@ -131,14 +135,55 @@ def balance_notify(balance):
             smtpObject.quit()
     elif balance > balance_low:
         mail_balance = balance_low
-    return
 
-# Init
+def comm_task():
+    global s, msg
+    while True:
+        try:
+            c = s.accept()[0]
+            c.sendall(msg.encode())
+            c.close()
+        except:
+            try:
+                c.close()
+            except:
+                pass
+            log('Send data failed.')
+            time.sleep(1)
+
+def comm_read():
+    global host, port
+    attempt = 5
+    while attempt:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((host, port))
+            data = s.recv(256).decode()
+            m = re.search(r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) -?\d+\.\d{2} (\d+\.\d{2}) \d+\.\d{4} (\d+\.\d{3}) \d+\.\d{2}', data)
+            print(m.group(0))
+            attempt = 0
+        except:
+            log(f'Read data failed ({attempt}).')
+            attempt -= 1
+        finally:
+            s.close()
+
+# Task selection
+if len(sys.argv) == 2:
+    if sys.argv[1] == 'read':
+        comm_read()
+    exit()
+elif len(sys.argv) > 2:
+    exit()
+# Init merter
 tm = time.localtime()
+energy_prev = 0
+cost_prev = 0
 energy = energy_prev
 cost = cost_prev
 mail_balance = balance_low
 cookie = {}
+msg = ''
 # Get previous data
 f = open(data_path, 'a+')
 f.seek(0)
@@ -153,30 +198,41 @@ try:
     log('Get previous data success.')
 except:
     log('Get previous data failed.')
-# Main loop
-while True:
-    try:
-        if not cookie:
-            cookie = login(meter_user, meter_pass)
-        while cookie:
-            try:
-                balance = get_balance(cookie)
-                topup = get_topup(cookie)
-                energy_real = get_energy(cookie)
-                price, power = metering(balance, topup, energy_real)
-                # Output data
-                tm = time.localtime()
-                t = time.strftime(r'%Y/%m/%d %H:%M:%S', tm)
-                f = open(data_path, 'w')
-                f.write(f'{t} {balance:.2f} {cost:.2f} {price:.4f} {energy:.3f} {power:.2f}')
-                f.close()
-                print(f'{t}: {balance:7.2f} CNY, {cost:8.2f} CNY, {price:6.4f} CNY/kWh, {energy:9.3f} kWh, {energy_real:8.2f} kWh, {power:5.2f} kW')
-                balance_notify(balance)
-            except:
-                cookie = {}
-                break
-            else:
-                while time.localtime().tm_min == tm.tm_min or (time.localtime().tm_min - clock_offset) % data_intv:
-                    time.sleep(1)
-    finally:
-        time.sleep(10)
+# Start tasks
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind((host, port))
+    s.listen(max_connect)
+    threading.Thread(target=comm_task).start()
+except:
+    log('Task start failed.')
+else:
+    log('Task start success.')
+    # Main loop
+    while True:
+        try:
+            if not cookie:
+                cookie = login(meter_user, meter_pass)
+            while cookie:
+                try:
+                    balance = get_balance(cookie)
+                    topup = get_topup(cookie)
+                    energy_real = get_energy(cookie)
+                    price, power = metering(balance, topup, energy_real)
+                    # Output data
+                    tm = time.localtime()
+                    t = time.strftime(r'%Y/%m/%d %H:%M:%S', tm)
+                    msg = f'{t} {balance:.2f} {cost:.2f} {price:.4f} {energy:.3f} {power:.2f}'
+                    f = open(data_path, 'w')
+                    f.write(msg)
+                    f.close()
+                    print(f'{t}: {balance:7.2f} CNY, {cost:8.2f} CNY, {price:6.4f} CNY/kWh, {energy:9.3f} kWh, {energy_real:8.2f} kWh, {power:5.2f} kW')
+                except:
+                    cookie = {}
+                    break
+                else:
+                    balance_notify(balance)
+                    while time.localtime().tm_min == tm.tm_min or (time.localtime().tm_min - clock_offset) % data_intv:
+                        time.sleep(1)
+        finally:
+            time.sleep(10)
