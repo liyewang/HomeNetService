@@ -27,7 +27,7 @@ energy_err_max = 0.01
 
 # Communication Config
 host = 'localhost'
-port = 12345
+port = 23456
 max_connect = 1
 
 # File Path
@@ -64,7 +64,7 @@ def get_balance(cookie):
     r = requests.get(url='http://tzjz.acrel-eem.com/Ajax/CheckUserLogin.ashx?Id=2', cookies=cookie, proxies=proxy)
     m = re.search(r'id="(.+?)"', r.text)
     cookie['InterID'] = requests.utils.quote(m.group(1))
-    m = re.search(r'(-?\d+\.\d+)元', r.text)
+    m = re.search(r'(-?\d+\.\d+)' + b'\xe5\x85\x83'.decode(), r.text)
     return float(m.group(1))
 
 def get_energy(cookie):
@@ -74,12 +74,12 @@ def get_energy(cookie):
     EndDate = time.strftime(r'%Y-%m-%d', time.localtime(time.time() + 24 * 3600))
     url_data = 'http://tzjz.acrel-eem.com/Ajax/CheckUserLogin.ashx?Id=7&StartDate=' + StartDate + '&EndDate=' + EndDate
     r = requests.get(url=url_data, cookies=cookie, proxies=proxy)
-    m = re.search(r'(\d+\.\d+)度</p>', r.text)
+    m = re.search(r'(\d+\.\d+)' + b'\xe5\xba\xa6'.decode() + '</p>', r.text)
     return float(m.group(1))
 
 def get_topup(cookie):
     r = requests.get(url='http://tzjz.acrel-eem.com/Ajax/CheckUserLogin.ashx?Id=6', cookies=cookie, proxies=proxy)
-    m = re.findall(r'(\d+\.\d+)元', r.text)
+    m = re.findall(r'(\d+\.\d+)' + b'\xe5\x85\x83'.decode(), r.text)
     topup = 0
     for t in m:
         topup += float(t)
