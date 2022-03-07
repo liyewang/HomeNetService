@@ -32,8 +32,8 @@ max_connect = 1
 
 # File Path
 energy_meter_path = os.path.dirname(os.path.abspath(__file__))
-data_path = f'{energy_meter_path}/energy_meter'
-log_path = f'{energy_meter_path}/energy_meter.log'
+data_path = f'{energy_meter_path}/EnergyMeter'
+log_path = f'{energy_meter_path}/EnergyMeter.log'
 
 # Mail Server
 mail_host = 'smtp.qq.com'
@@ -159,12 +159,13 @@ def comm_read():
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((host, port))
             data = s.recv(256).decode()
-            m = re.search(r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) -?\d+\.\d{2} (\d+\.\d{2}) \d+\.\d{4} (\d+\.\d{3}) \d+\.\d{2}', data)
+            m = re.search(r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (-?\d+) -?\d+\.\d{2} (\d+\.\d{2}) \d+\.\d{4} (\d+\.\d{3}) \d+\.\d{2}', data)
             print(m.group(0))
             attempt = 0
         except:
             log(f'Read data failed ({attempt}).')
             attempt -= 1
+            time.sleep(1)
         finally:
             s.close()
 
@@ -190,11 +191,12 @@ f.seek(0)
 data = f.read()
 f.close()
 # Verify previous data
-m = re.search(r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) -?\d+\.\d{2} (\d+\.\d{2}) \d+\.\d{4} (\d+\.\d{3}) \d+\.\d{2}', data)
+m = re.search(r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (-?\d+) -?\d+\.\d{2} (\d+\.\d{2}) \d+\.\d{4} (\d+\.\d{3}) \d+\.\d{2}', data)
 try:
     tm = time.strptime(m.group(1), r'%Y/%m/%d %H:%M:%S')
-    cost = float(m.group(2))
-    energy = float(m.group(3))
+    mail_balance = int(m.group(2))
+    cost = float(m.group(3))
+    energy = float(m.group(4))
     log('Get previous data success.')
 except:
     log('Get previous data failed.')
@@ -220,18 +222,18 @@ else:
                     energy_real = get_energy(cookie)
                     price, power = metering(balance, topup, energy_real)
                     # Output data
+                    balance_notify(balance)
                     tm = time.localtime()
                     t = time.strftime(r'%Y/%m/%d %H:%M:%S', tm)
-                    msg = f'{t} {balance:.2f} {cost:.2f} {price:.4f} {energy:.3f} {power:.2f}'
+                    msg = f'{t} {mail_balance} {balance:.2f} {cost:.2f} {price:.4f} {energy:.3f} {power:.2f}'
                     f = open(data_path, 'w')
                     f.write(msg)
                     f.close()
-                    print(f'{t}: {balance:7.2f} CNY, {cost:8.2f} CNY, {price:6.4f} CNY/kWh, {energy:9.3f} kWh, {energy_real:8.2f} kWh, {power:5.2f} kW')
+                    print(f'{t}: {mail_balance} CNY {balance:7.2f} CNY, {cost:8.2f} CNY, {price:6.4f} CNY/kWh, {energy:9.3f} kWh, {energy_real:8.2f} kWh, {power:5.2f} kW')
                 except:
                     cookie = {}
                     break
                 else:
-                    balance_notify(balance)
                     while time.localtime().tm_min == tm.tm_min or (time.localtime().tm_min - clock_offset) % data_intv:
                         time.sleep(1)
         finally:

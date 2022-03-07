@@ -1,5 +1,11 @@
 sensor:
   - platform: command_line
     name: Energy
-    command: "python /root/energy_meter/energy_meter.py read | cut -d ' ' -f 6"
+    command: "python /root/EnergyMeter/EnergyMeter.py read | cut -d ' ' -f 7"
     unit_of_measurement: "kWh"
+    scan_interval: 1800
+  - platform: command_line
+    name: Power
+    command: "python /root/EnergyMeter/EnergyMeter.py read | cut -d ' ' -f 8"
+    unit_of_measurement: "kW"
+    scan_interval: 1800
