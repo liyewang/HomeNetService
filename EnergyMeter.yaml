@@ -1,11 +1,39 @@
 sensor:
   - platform: command_line
-    name: Energy
-    command: "python /root/EnergyMeter/EnergyMeter.py read | cut -d ' ' -f 7"
-    unit_of_measurement: "kWh"
+    name: Energy Meter Info
+    command: python3 /config/script/EnergyMeter.py
     scan_interval: 1800
-  - platform: command_line
-    name: Power
-    command: "python /root/EnergyMeter/EnergyMeter.py read | cut -d ' ' -f 8"
-    unit_of_measurement: "kW"
-    scan_interval: 1800
+    unique_id: energy_meter
+
+template:
+  - sensor:
+      - name: Balance
+        unit_of_measurement: CNY
+        device_class: monetary
+        state_class: measurement
+        state: "{{ states('sensor.energy_meter').split()[3] }}"
+        unique_id: grid_balance
+      - name: Cost
+        unit_of_measurement: CNY
+        device_class: monetary
+        state_class: total
+        state: "{{ states('sensor.energy_meter').split()[4] }}"
+        unique_id: grid_cost
+      - name: Price
+        unit_of_measurement: CNY
+        device_class: monetary
+        state_class: measurement
+        state: "{{ states('sensor.energy_meter').split()[5] }}"
+        unique_id: grid_price
+      - name: Energy
+        unit_of_measurement: kWh
+        device_class: energy
+        state_class: total
+        state: "{{ states('sensor.energy_meter').split()[6] }}"
+        unique_id: grid_energy
+      - name: Power
+        unit_of_measurement: kW
+        device_class: power
+        state_class: measurement
+        state: "{{ states('sensor.energy_meter').split()[7] }}"
+        unique_id: grid_power

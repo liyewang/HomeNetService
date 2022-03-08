@@ -115,7 +115,7 @@ def metering(balance, topup, energy_real):
 def balance_notify(balance):
     global mail_balance
     if balance <= mail_balance:
-        mail_text = f'Low balance: {balance}'
+        mail_text = f'Low balance: {balance:.2f}'
         try:
             smtpObject = smtplib.SMTP_SSL(mail_host, mail_port)
             smtpObject.login(mail_user, mail_pass)
