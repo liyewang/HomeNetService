@@ -86,17 +86,23 @@ def get_topup(cookie):
     return topup
 
 def metering(balance, topup, energy_real):
-    global tm, cost, cost_prev, energy, energy_prev, price_tab
+    global tm, cost, cost_prev, energy, energy_prev, price_tab, power_max, data_intv, energy_err_max, clock_offset
     price = price_tab[time.localtime().tm_mon - 1]
     cost_delta = topup - balance - cost
     cost = topup - balance
-    energy_delta = cost_delta / price
-    energy += energy_delta
+    if price:
+        energy_delta = cost_delta / price
+        energy += energy_delta
+    else:
+        energy = energy_real
     # Calib energy and price
     if (time.localtime().tm_min - clock_offset) == 0:
-        if abs(energy_real - energy) > energy_err_max:
+        if abs(energy_real - energy) > energy_err_max and (energy_real - energy_prev) != 0:
             price = (cost - cost_prev) / (energy_real - energy_prev)
-            energy_delta = cost_delta / price
+            if price:
+                energy_delta = cost_delta / price
+            else:
+                energy_delta = (energy_real - energy_prev) * data_intv / 60
             energy = energy_real
         energy_prev = energy_real
         cost_prev = cost
@@ -185,6 +191,9 @@ cost = cost_prev
 mail_balance = balance_low
 cookie = {}
 msg = ''
+data_intv = round(data_intv)
+if data_intv <= 0:
+    data_intv = 1
 # Get previous data
 f = open(data_path, 'a+')
 f.seek(0)
@@ -212,29 +221,32 @@ else:
     log('Task start success.')
     # Main loop
     while True:
-        try:
-            if not cookie:
+        if not cookie:
+            try:
                 cookie = login(meter_user, meter_pass)
-            while cookie:
+            except:
+                cookie = {}
+        while cookie:
+            try:
+                balance = get_balance(cookie)
+                topup = get_topup(cookie)
+                energy_real = get_energy(cookie)
+            except:
+                cookie = {}
+                break
+            else:
+                price, power = metering(balance, topup, energy_real)
+                balance_notify(balance)
+                tm = time.localtime()
+                t = time.strftime(r'%Y/%m/%d %H:%M:%S', tm)
+                msg = f'{t} {mail_balance} {balance:.2f} {cost:.2f} {price:.4f} {energy:.3f} {power:.2f}'
                 try:
-                    balance = get_balance(cookie)
-                    topup = get_topup(cookie)
-                    energy_real = get_energy(cookie)
-                    price, power = metering(balance, topup, energy_real)
-                    # Output data
-                    balance_notify(balance)
-                    tm = time.localtime()
-                    t = time.strftime(r'%Y/%m/%d %H:%M:%S', tm)
-                    msg = f'{t} {mail_balance} {balance:.2f} {cost:.2f} {price:.4f} {energy:.3f} {power:.2f}'
                     f = open(data_path, 'w')
                     f.write(msg)
                     f.close()
-                    print(f'{t}: {mail_balance:4d} CNY {balance:7.2f} CNY, {cost:8.2f} CNY, {price:6.4f} CNY/kWh, {energy:9.3f} kWh, {energy_real:8.2f} kWh, {power:5.2f} kW')
                 except:
-                    cookie = {}
-                    break
-                else:
-                    while time.localtime().tm_min == tm.tm_min or (time.localtime().tm_min - clock_offset) % data_intv:
-                        time.sleep(1)
-        finally:
-            time.sleep(10)
+                    pass
+                print(f'{t}: {mail_balance:4d} CNY {balance:7.2f} CNY, {cost:8.2f} CNY, {price:6.4f} CNY/kWh, {energy:9.3f} kWh, {energy_real:8.2f} kWh, {power:5.2f} kW')
+                while time.localtime().tm_min == tm.tm_min or (time.localtime().tm_min - clock_offset) % data_intv:
+                    time.sleep(1)
+        time.sleep(10)
