@@ -229,7 +229,7 @@ else:
                     f = open(data_path, 'w')
                     f.write(msg)
                     f.close()
-                    print(f'{t}: {mail_balance} CNY {balance:7.2f} CNY, {cost:8.2f} CNY, {price:6.4f} CNY/kWh, {energy:9.3f} kWh, {energy_real:8.2f} kWh, {power:5.2f} kW')
+                    print(f'{t}: {mail_balance:4d} CNY {balance:7.2f} CNY, {cost:8.2f} CNY, {price:6.4f} CNY/kWh, {energy:9.3f} kWh, {energy_real:8.2f} kWh, {power:5.2f} kW')
                 except:
                     cookie = {}
                     break
