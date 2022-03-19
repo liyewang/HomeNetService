@@ -91,7 +91,7 @@ def get_topup(cookie):
     return topup
 
 def metering(balance, topup, energy_real):
-    global tm, cost, cost_prev, energy, energy_prev, price_tab, power_max, data_intv, energy_err_max, clock_offset
+    global tm, cost, cost_prev, energy, energy_prev, power, price_tab, power_max, data_intv, energy_err_max, clock_offset
     price = price_tab[time.localtime().tm_mon - 1]
     cost_delta = topup - balance - cost
     cost = topup - balance
@@ -117,11 +117,11 @@ def metering(balance, topup, energy_real):
     t_delta = time.mktime(time.localtime()) - time.mktime(tm)
     if t_delta >= data_intv * 60 * 2:
         power = energy_delta * 3600 / t_delta
-    else:
+    elif energy_delta > 0 or t_delta > data_intv * 60:
         power = energy_delta * 60 / data_intv
     if power > power_max:
         power = 0
-    return price, power
+    return price
 
 def balance_notify(balance):
     global mail_balance
@@ -179,7 +179,7 @@ def comm_read():
             s.close()
             m = re.search(r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (-?\d+) -?\d+\.\d{2} (\d+\.\d{2}) \d+\.\d{4} (\d+\.\d{3}) \d+\.\d{2}', data)
             print(m.group(0))
-            attempt = 0
+            break
         except:
             try:
                 s.close()
@@ -229,6 +229,7 @@ if __name__ == '__main__':
     cost_prev = 0
     energy = energy_prev
     cost = cost_prev
+    power = 0
     mail_balance = balance_low
     cookie = {}
     msg = ''
@@ -241,11 +242,12 @@ if __name__ == '__main__':
             f.seek(0)
             data = f.read()
             # Verify previous data
-            m = re.search(r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (-?\d+) -?\d+\.\d{2} (\d+\.\d{2}) \d+\.\d{4} (\d+\.\d{3}) \d+\.\d{2}', data)
+            m = re.search(r'(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (-?\d+) -?\d+\.\d{2} (\d+\.\d{2}) \d+\.\d{4} (\d+\.\d{3}) (\d+\.\d{2})', data)
             tm = time.strptime(m.group(1), r'%Y/%m/%d %H:%M:%S')
             mail_balance = int(m.group(2))
             cost = float(m.group(3))
             energy = float(m.group(4))
+            power = float(m.group(5))
     except:
         log('Get previous data failed.')
     else:
@@ -279,7 +281,7 @@ if __name__ == '__main__':
                     cookie = {}
                     break
                 else:
-                    price, power = metering(balance, topup, energy_real)
+                    price = metering(balance, topup, energy_real)
                     balance_notify(balance)
                     tm = time.localtime()
                     t = time.strftime(r'%Y/%m/%d %H:%M:%S', tm)
