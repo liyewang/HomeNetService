@@ -144,7 +144,7 @@ def balance_notify(balance):
         except:
             log('Sending mail failed.')
         else:
-            mail_balance = int(balance / 10 - 1) * 10 
+            mail_balance = int(balance / 10 - 1) * 10
         finally:
             try:
                 smtpObject.quit()
