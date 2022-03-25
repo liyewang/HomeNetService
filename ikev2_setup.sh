@@ -126,7 +126,7 @@ set_addr() {
     read -p "Input server public IP/domain[${addr_public}]: " input
     if [ "${input}" != "" ]; then addr_public=${input}; fi
     # Get local IP address of the server
-    ip_local=`hostname -I | cut -d' ' -f 1`
+    ip_local=`hostname -I | cut -d ' ' -f 1`
     read -p "Input primary DNS address[${dns1}]: " input
     if [ "${input}" != "" ]; then dns1=${input}; fi
     read -p "Input secondary DNS address[${dns2}]: " input
