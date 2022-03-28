@@ -86,7 +86,7 @@ def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
             time.sleep(10)
         else:
             log(f'{cam_name} recording path created.')
-    cmd = f'ffmpeg -v level+error -stimeout {timeout * 1000000} -i "{cam_src}" -c copy -f segment -segment_atclocktime 1 -segment_time {seg_time} -strftime 1 "{os.path.join(rec_dst, cam_name)}_%Y%m%d%H%M%S.mp4" -y'
+    cmd = f'ffmpeg -v level+error -stimeout {timeout * 1000000} -i "{cam_src}" -c copy -f segment -segment_atclocktime 1 -segment_time {seg_time} -segment_format_options movflags=+faststart -strftime 1 "{os.path.join(rec_dst, cam_name)}_%Y%m%d%H%M%S.mp4" -y'
     act = True
     while act:
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, encoding='utf-8')
