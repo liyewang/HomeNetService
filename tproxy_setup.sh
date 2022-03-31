@@ -14,9 +14,9 @@ iptables -t mangle -N V2RAY
 iptables -t mangle -A V2RAY -d 127.0.0.1/32 -j RETURN
 iptables -t mangle -A V2RAY -d 224.0.0.0/4 -j RETURN
 iptables -t mangle -A V2RAY -d 255.255.255.255/32 -j RETURN
-# iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p tcp -j RETURN
-# iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
-iptables -t mangle -A V2RAY -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p tcp -j RETURN
+iptables -t mangle -A V2RAY -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
+# iptables -t mangle -A V2RAY -d 192.168.0.0/16 -j RETURN
 iptables -t mangle -A V2RAY -s 172.16.0.0/12 -j RETURN
 iptables -t mangle -A V2RAY -d 172.16.0.0/12 -j RETURN
 iptables -t mangle -A V2RAY -d 10.0.0.0/8 -j RETURN
@@ -27,12 +27,14 @@ iptables -t mangle -A PREROUTING -j V2RAY
 iptables -t mangle -N V2RAY_MASK
 iptables -t mangle -A V2RAY_MASK -d 224.0.0.0/4 -j RETURN
 iptables -t mangle -A V2RAY_MASK -d 255.255.255.255/32 -j RETURN
-# iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p tcp -j RETURN
-# iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
-iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p tcp -j RETURN
+iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -p udp ! --dport 53 -j RETURN
+# iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -j RETURN
 iptables -t mangle -A V2RAY_MASK -s 172.16.0.0/12 -j RETURN
 iptables -t mangle -A V2RAY_MASK -d 172.16.0.0/12 -j RETURN
 iptables -t mangle -A V2RAY_MASK -d 10.0.0.0/8 -j RETURN
+iptables -t mangle -A V2RAY_MASK -p udp -m udp --sport 500 -j RETURN
+iptables -t mangle -A V2RAY_MASK -p udp -m udp --sport 4500 -j RETURN
 iptables -t mangle -A V2RAY_MASK -j RETURN -m mark --mark 0xff
 iptables -t mangle -A V2RAY_MASK -p udp -j MARK --set-mark 1
 iptables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-mark 1
@@ -85,6 +87,26 @@ EOF
     fi
 else
     echo "Please manually configure the static gateway to the router this device is connected to."
+fi
+
+# avoid "too many open files" warning
+if [ -z "`cat /etc/systemd/system/v2ray.service | grep '\[Service\]'`" ]; then
+    echo 'Add LimitNPROC=500 and LimitNOFILE=1000000 to /etc/systemd/system/v2ray.service to avoid warnings.'
+else
+    sed -i -e '/LimitNPROC/d' -e '/LimitNOFILE/d' /etc/systemd/system/v2ray.service
+    ROW=`cat /etc/systemd/system/v2ray.service | grep '\[Service\]' -n | cut -d ':' -f 1`
+    ROW=`expr $ROW + 1`
+    while :; do
+        if [ -z "`cat /etc/systemd/system/v2ray.service | cut -d '
+' -f $ROW`" ]; then
+            break
+        elif [ ! -z "`cat /etc/systemd/system/v2ray.service | cut -d '
+' -f $ROW | egrep '^\[.*?\]$'`" ]; then
+            break
+        fi
+        ROW=`expr $ROW + 1`
+    done
+    sed -i "$ROW i LimitNPROC=500\nLimitNOFILE=1000000" /etc/systemd/system/v2ray.service
 fi
 
 echo "Success"
