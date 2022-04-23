@@ -35,10 +35,9 @@ def log(msg):
 def rec_size(cam_name, cam_rec_path):
     size = 0
     for item in os.listdir(cam_rec_path):
-        if os.path.isfile(item):
-            m = re.search(f'^{cam_name}_\d{{14}}\.mp4$', item)
-            if m:
-                size += os.lstat(os.path.join(cam_rec_path, item)).st_size
+        item_path = os.path.join(cam_rec_path, item)
+        if os.path.isfile(item_path) and re.search(f'^{cam_name}_\d{{14}}\.mp4$', item):
+            size += os.lstat(item_path).st_size
     return size
 
 def rec_days(cam_name, cam_rec_path):
