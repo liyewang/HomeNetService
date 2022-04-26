@@ -43,12 +43,12 @@ def rec_size(cam_name, cam_rec_path):
 def rec_days(cam_name, cam_rec_path):
     days = 0
     for item in os.listdir(cam_rec_path):
-        if os.path.isfile(item):
+        if os.path.isfile(os.path.join(cam_rec_path, item)):
             m = re.search(f'^{cam_name}_(\d{{14}})\.mp4$', item)
             if m:
-                 tm = time.strptime(m.group(1), r'%Y%m%d%H%M%S')
-                 days = (time.mktime(time.localtime()) - time.mktime(tm)) / (3600 * 24)
-                 break
+                tm = time.strptime(m.group(1), r'%Y%m%d%H%M%S')
+                days = (time.mktime(time.localtime()) - time.mktime(tm)) / (3600 * 24)
+                break
     return days
 
 def rec_purge(cam_name, cam_rec_path, max_size, max_days):
