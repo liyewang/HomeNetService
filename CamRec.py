@@ -105,6 +105,7 @@ def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
                 rec_purge(cam_name, cam_rec_path, max_size, max_days)
                 free = shutil.disk_usage(cam_rec_path).free
                 if free < min_free:
+                    log(f'Insufficient space: {free} < {min_free}')
                     try:
                         out, err = p.communicate(input='q', timeout=5)
                     except subprocess.TimeoutExpired:
