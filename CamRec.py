@@ -32,12 +32,12 @@ def log(msg):
         pass
     return
 
-def rec_purge(cam_name, cam_rec_path, max_size, max_days):
+def rec_purge(cam_name, rec_dst, max_size, max_days):
     size = 0
-    items = os.listdir(cam_rec_path)
+    items = os.listdir(rec_dst)
     items.sort(reverse=True)
     for item in items:
-        item_path = os.path.join(cam_rec_path, item)
+        item_path = os.path.join(rec_dst, item)
         if os.path.isfile(item_path):
             m = re.search(f'^{cam_name}_(\d{{14}})\.mp4$', item)
             if m:
@@ -63,22 +63,20 @@ def rec_purge(cam_name, cam_rec_path, max_size, max_days):
     return
 
 def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
-    global free
-    act = True
+    once = True
     while not os.path.isdir(rec_dst):
         try:
             os.makedirs(rec_dst)
         except:
-            if act:
+            if once:
                 log(f'{cam_name} recording path error.')
-                act = False
+                once = False
             time.sleep(1)
         else:
             log(f'{cam_name} recording path created.')
     cmd = f'ffmpeg -v level+error -stimeout {int(timeout * 1000000)} -i "{cam_src}" -c copy -f segment -segment_atclocktime 1 -segment_time {seg_time} -segment_format_options movflags=+faststart -strftime 1 "{os.path.join(rec_dst, cam_name)}_%Y%m%d%H%M%S.mp4" -y'
     purge_timer = 0
-    act = True
-    while act:
+    while True:
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, encoding='utf-8')
         count = 0
         while p.poll() == None:
@@ -96,8 +94,13 @@ def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
                 log(f'{cam_name} {err}')
             time.sleep(10)
             continue
+        once = True
         while p.poll() == None:
+            free = shutil.disk_usage(rec_dst).free
             if free < min_free:
+                if once:
+                    log(f'Insufficient free space: {free} in {rec_dst}')
+                    once = False
                 try:
                     out, err = p.communicate(input='q', timeout=5)
                 except subprocess.TimeoutExpired:
@@ -107,18 +110,18 @@ def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
                     log(f'{cam_name} {out}')
                 if err:
                     log(f'{cam_name} {err}')
-                act = False
             elif time.time() - purge_timer > seg_time:
-                rec_purge(cam_name, cam_rec_path, max_size, max_days)
+                rec_purge(cam_name, rec_dst, max_size, max_days)
                 purge_timer = time.time()
             time.sleep(1)
-        else:
-            log(f'{cam_name} recording stopped.')
-    return
+        log(f'{cam_name} recording stopped.')
+        while free < rst_free:
+            time.sleep(1)
+            free = shutil.disk_usage(rec_dst).free
+        log(f'Sufficient free space: {free} in {rec_dst}')
 
 if __name__ == '__main__':
     t = []
-    free = min_free
     # Load config
     with open(cfg_file, 'r') as f:
         cfg = yaml.safe_load(f)
@@ -141,20 +144,9 @@ if __name__ == '__main__':
         t[i].start()
         log(f'{cam_name} thread started.')
     while True:
-        free = shutil.disk_usage(cam_rec_path).free
         for i in range(cams):
             if not t[i].is_alive():
-                if free < min_free:
-                    log(f'Insufficient free space: {free} < {min_free}')
-                    for i in range(cams):
-                        t[i].join()
-                        log(f'{cfg[i].get("cam_name")} thread stopped.')
-                    while free < rst_free:
-                        time.sleep(1)
-                        free = shutil.disk_usage(cam_rec_path).free
-                    log('Sufficient free space.')
-                else:
-                    log(f'{cfg[i].get("cam_name")} thread stopped.')
+                log(f'{cfg[i].get("cam_name")} thread stopped.')
                 t[i].daemon = True
                 t[i].start()
                 log(f'{cfg[i].get("cam_name")} thread restarted.')
