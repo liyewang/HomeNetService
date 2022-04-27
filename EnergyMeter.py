@@ -257,7 +257,9 @@ if __name__ == '__main__':
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind((host, port))
         s.listen(max_connect)
-        threading.Thread(target=comm_task).start()
+        t = threading.Thread(target=comm_task)
+        t.daemon = True
+        t.start()
     except:
         log('Task start failed.')
     else:
