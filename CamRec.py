@@ -32,39 +32,34 @@ def log(msg):
         pass
     return
 
-def rec_size(cam_name, cam_rec_path):
+def rec_purge(cam_name, cam_rec_path, max_size, max_days):
     size = 0
-    for item in os.listdir(cam_rec_path):
+    items = os.listdir(cam_rec_path)
+    items.sort(reverse=True)
+    for item in items:
         item_path = os.path.join(cam_rec_path, item)
-        if os.path.isfile(item_path) and re.search(f'^{cam_name}_\d{{14}}\.mp4$', item):
-            size += os.lstat(item_path).st_size
-    return size
-
-def rec_days(cam_name, cam_rec_path):
-    days = 0
-    for item in os.listdir(cam_rec_path):
-        if os.path.isfile(os.path.join(cam_rec_path, item)):
+        if os.path.isfile(item_path):
             m = re.search(f'^{cam_name}_(\d{{14}})\.mp4$', item)
             if m:
-                tm = time.strptime(m.group(1), r'%Y%m%d%H%M%S')
-                days = (time.mktime(time.localtime()) - time.mktime(tm)) / (3600 * 24)
-                break
-    return days
-
-def rec_purge(cam_name, cam_rec_path, max_size, max_days):
-    while ((max_days > 0 and rec_days(cam_name, cam_rec_path) > max_days)
-            or (max_size > 0 and rec_size(cam_name, cam_rec_path) > max_size)):
-        del_file = ''
-        for item in os.listdir(cam_rec_path):
-            item_path = os.path.join(cam_rec_path, item)
-            if os.path.isfile(item_path) and re.search(f'^{cam_name}_\d{{14}}\.mp4$', item):
-                if del_file:
-                    try:
-                        os.remove(del_file)
-                    finally:
-                        break
+                if size:
+                    size += os.lstat(item_path).st_size
+                    if max_size > 0 and size > max_size:
+                        try:
+                            os.remove(item_path)
+                        except:
+                            log('Delete file [{item_path}] failed.')
+                        continue
+                    days = (time.time() - time.mktime(time.strptime(m.group(1), r'%Y%m%d%H%M%S'))) / (3600 * 24)
+                    if max_days > 0 and days > max_days:
+                        size += max_size
+                        try:
+                            os.remove(item_path)
+                        except:
+                            log('Delete file [{item_path}] failed.')
                 else:
-                    del_file = item_path
+                    size += os.lstat(item_path).st_size
+                    if not size:
+                        size = 1
     return
 
 def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
@@ -77,10 +72,11 @@ def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
             if act:
                 log(f'{cam_name} recording path error.')
                 act = False
-            time.sleep(10)
+            time.sleep(1)
         else:
             log(f'{cam_name} recording path created.')
-    cmd = f'ffmpeg -v level+error -stimeout {timeout * 1000000} -i "{cam_src}" -c copy -f segment -segment_atclocktime 1 -segment_time {seg_time} -segment_format_options movflags=+faststart -strftime 1 "{os.path.join(rec_dst, cam_name)}_%Y%m%d%H%M%S.mp4" -y'
+    cmd = f'ffmpeg -v level+error -stimeout {int(timeout * 1000000)} -i "{cam_src}" -c copy -f segment -segment_atclocktime 1 -segment_time {seg_time} -segment_format_options movflags=+faststart -strftime 1 "{os.path.join(rec_dst, cam_name)}_%Y%m%d%H%M%S.mp4" -y'
+    purge_timer = 0
     act = True
     while act:
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, encoding='utf-8')
@@ -101,25 +97,24 @@ def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
             time.sleep(10)
             continue
         while p.poll() == None:
-            if act:
+            if free < min_free:
+                try:
+                    out, err = p.communicate(input='q', timeout=5)
+                except subprocess.TimeoutExpired:
+                    p.kill()
+                    out, err = p.communicate()
+                if out:
+                    log(f'{cam_name} {out}')
+                if err:
+                    log(f'{cam_name} {err}')
+                act = False
+            elif time.time() - purge_timer > seg_time:
                 rec_purge(cam_name, cam_rec_path, max_size, max_days)
-                free = shutil.disk_usage(cam_rec_path).free
-                if free < min_free:
-                    log(f'Insufficient space: {free} < {min_free}')
-                    try:
-                        out, err = p.communicate(input='q', timeout=5)
-                    except subprocess.TimeoutExpired:
-                        p.kill()
-                        out, err = p.communicate()
-                    finally:
-                        if out:
-                            log(f'{cam_name} {out}')
-                        if err:
-                            log(f'{cam_name} {err}')
-                    act = False
-            time.sleep(seg_time)
+                purge_timer = time.time()
+            time.sleep(1)
         else:
             log(f'{cam_name} recording stopped.')
+    return
 
 if __name__ == '__main__':
     t = []
@@ -133,22 +128,24 @@ if __name__ == '__main__':
         cams = max_cams
     for i in range(cams):
         # Camera Config
-        cam_name = cfg[i].get('cam_name')
-        cam_src = cfg[i].get('cam_src')
-        timeout = cfg[i].get('timeout', timeout)
+        cam_name = str(cfg[i].get('cam_name'))
+        cam_src = str(cfg[i].get('cam_src'))
+        timeout = float(cfg[i].get('timeout', timeout))
         # Recoder Config
-        rec_dst = cfg[i].get('rec_dst', os.path.join(cam_rec_path, cam_name))
-        seg_time = cfg[i].get('seg_time', seg_time)
-        max_size = cfg[i].get('max_size', max_size) * 1024 ** 3
-        max_days = cfg[i].get('max_days', max_days)
+        rec_dst = str(cfg[i].get('rec_dst', os.path.join(cam_rec_path, cam_name)))
+        seg_time = int(cfg[i].get('seg_time', seg_time))
+        max_size = float(cfg[i].get('max_size', max_size) * 1024 ** 3)
+        max_days = float(cfg[i].get('max_days', max_days))
         t.append(threading.Thread(target=recorder, args=(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days)))
+        t[i].daemon = True
         t[i].start()
         log(f'{cam_name} thread started.')
     while True:
+        free = shutil.disk_usage(cam_rec_path).free
         for i in range(cams):
             if not t[i].is_alive():
                 if free < min_free:
-                    log('Insufficient free space.')
+                    log(f'Insufficient free space: {free} < {min_free}')
                     for i in range(cams):
                         t[i].join()
                         log(f'{cfg[i].get("cam_name")} thread stopped.')
@@ -158,6 +155,7 @@ if __name__ == '__main__':
                     log('Sufficient free space.')
                 else:
                     log(f'{cfg[i].get("cam_name")} thread stopped.')
+                t[i].daemon = True
                 t[i].start()
                 log(f'{cfg[i].get("cam_name")} thread restarted.')
         time.sleep(1)
