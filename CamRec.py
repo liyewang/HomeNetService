@@ -52,25 +52,20 @@ def rec_days(cam_name, cam_rec_path):
     return days
 
 def rec_purge(cam_name, cam_rec_path, max_size, max_days):
-    while True:
-        if max_days > 0:
-            if rec_days(cam_name, cam_rec_path) > max_days:
-                break
-        if max_size > 0:
-            if rec_size(cam_name, cam_rec_path) > max_size:
-                break
-        return
-    del_file = ''
-    for item in os.listdir(cam_rec_path):
-        item_path = os.path.join(cam_rec_path, item)
-        if os.path.isfile(item_path) and re.search(f'^{cam_name}_\d{{14}}\.mp4$', item):
-            if del_file:
-                try:
-                    os.remove(del_file)
-                finally:
-                    break
-            else:
-                del_file = item_path
+    while ((max_days > 0 and rec_days(cam_name, cam_rec_path) > max_days)
+            or (max_size > 0 and rec_size(cam_name, cam_rec_path) > max_size)):
+        del_file = ''
+        for item in os.listdir(cam_rec_path):
+            item_path = os.path.join(cam_rec_path, item)
+            if os.path.isfile(item_path) and re.search(f'^{cam_name}_\d{{14}}\.mp4$', item):
+                if del_file:
+                    try:
+                        os.remove(del_file)
+                    finally:
+                        break
+                else:
+                    del_file = item_path
+    return
 
 def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
     global free
