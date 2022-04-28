@@ -41,25 +41,28 @@ def rec_purge(cam_name, rec_dst, max_size, max_days):
         if os.path.isfile(item_path):
             m = re.search(f'^{cam_name}_(\d{{14}})\.mp4$', item)
             if m:
-                if size:
-                    size += os.lstat(item_path).st_size
-                    if max_size > 0 and size > max_size:
-                        try:
-                            os.remove(item_path)
-                        except:
-                            log('Delete file [{item_path}] failed.')
-                        continue
-                    days = (time.time() - time.mktime(time.strptime(m.group(1), r'%Y%m%d%H%M%S'))) / (3600 * 24)
-                    if max_days > 0 and days > max_days:
-                        size += max_size
-                        try:
-                            os.remove(item_path)
-                        except:
-                            log('Delete file [{item_path}] failed.')
+                while size > 0:
+                    if max_size > 0:
+                        size += os.lstat(item_path).st_size
+                        if size > max_size:
+                            size = -1
+                            continue
+                    if max_days > 0:
+                        days = (time.time() - time.mktime(time.strptime(m.group(1), r'%Y%m%d%H%M%S'))) / (3600 * 24)
+                        if days > max_days:
+                            size = -1
+                            continue
+                    break
                 else:
-                    size += os.lstat(item_path).st_size
-                    if not size:
-                        size = 1
+                    if size < 0:
+                        try:
+                            os.remove(item_path)
+                        except:
+                            log(f'Delete file [{item_path}] failed.')
+                    else:
+                        size += os.lstat(item_path).st_size
+                        if size <= 0:
+                            size = 1
     return
 
 def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
