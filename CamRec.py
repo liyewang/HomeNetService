@@ -66,14 +66,14 @@ def rec_purge(cam_name, rec_dst, max_size, max_days):
     return
 
 def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
-    once = True
+    flag = True
     while not os.path.isdir(rec_dst):
         try:
             os.makedirs(rec_dst)
         except:
-            if once:
+            if flag:
                 log(f'{cam_name} recording path error.')
-                once = False
+                flag = False
             time.sleep(1)
         else:
             log(f'{cam_name} recording path created.')
@@ -97,13 +97,13 @@ def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
                 log(f'{cam_name} {err}')
             time.sleep(10)
             continue
-        once = True
+        flag = True
         while p.poll() == None:
             free = shutil.disk_usage(rec_dst).free
             if free < min_free:
-                if once:
+                if flag:
                     log(f'Insufficient free space: {free} in {rec_dst}')
-                    once = False
+                    flag = False
                 try:
                     out, err = p.communicate(input='q', timeout=5)
                 except subprocess.TimeoutExpired:
@@ -121,7 +121,8 @@ def recorder(cam_name, cam_src, rec_dst, seg_time, timeout, max_size, max_days):
         while free < rst_free:
             time.sleep(1)
             free = shutil.disk_usage(rec_dst).free
-        log(f'Sufficient free space: {free} in {rec_dst}')
+        if not flag:
+            log(f'Sufficient free space: {free} in {rec_dst}')
 
 if __name__ == '__main__':
     t = []
