@@ -18,7 +18,7 @@ import yaml
 meter_user = 'user'
 meter_pass = 'pass'
 #              Jan    Feb     Mar    Apr    May    Jun    Jul    Aug    Sep    Oct    Nov    Dec
-price_tab = [0.805, 0.711, 0.8251, 0.711, 0.711, 0.711, 0.738, 0.738, 0.738, 0.711, 0.711, 0.711]
+price_tab = [0.711, 0.711,  0.711, 0.711, 0.711, 0.711, 0.738, 0.738, 0.738, 0.711, 0.711, 0.711]
 balance_low = -80
 data_intv = 30
 clock_offset = 1
@@ -40,8 +40,8 @@ cfg_file = f'{energy_meter_path}/EnergyMeterCfg.yaml'
 # Mail Server
 mail_host = 'smtp.qq.com'
 mail_port = 465
-mail_user = "user@qq.com"
-mail_pass = "pass"
+mail_user = 'user@qq.com'
+mail_pass = 'pass'
 # Mail Address
 mail_from_addr = 'user@qq.com'
 mail_to_addrs = ['dest@qq.com']
@@ -60,19 +60,22 @@ def log(msg):
         pass
     return
 
-def login(meter_user, meter_pass):
+def login():
+    global meter_user, meter_pass, proxy
     url_login = 'http://tzjz.acrel-eem.com/Ajax/UserLogin.ashx?Id=' + str(random.random()) + '&username=' + meter_user + '&password=' + meter_pass
     r = requests.get(url=url_login, proxies=proxy)
     return requests.utils.dict_from_cookiejar(r.cookies)
 
-def get_balance(cookie):
+def get_balance():
+    global cookie, proxy
     r = requests.get(url='http://tzjz.acrel-eem.com/Ajax/CheckUserLogin.ashx?Id=2', cookies=cookie, proxies=proxy)
     m = re.search(r'id="(.+?)"', r.text)
     cookie['InterID'] = requests.utils.quote(m.group(1))
     m = re.search(r'(-?\d+\.\d+)' + b'\xe5\x85\x83'.decode(), r.text)
     return float(m.group(1))
 
-def get_energy(cookie):
+def get_energy():
+    global cookie, proxy
     if not cookie['InterID']:
         get_balance(cookie)
     StartDate = time.strftime(r'%Y-%m-%d', time.localtime(time.time() - 24 * 3600))
@@ -82,7 +85,8 @@ def get_energy(cookie):
     m = re.search(r'(\d+\.\d+)' + b'\xe5\xba\xa6'.decode() + '</p>', r.text)
     return float(m.group(1))
 
-def get_topup(cookie):
+def get_topup():
+    global cookie, proxy
     r = requests.get(url='http://tzjz.acrel-eem.com/Ajax/CheckUserLogin.ashx?Id=6', cookies=cookie, proxies=proxy)
     m = re.findall(r'(\d+\.\d+)' + b'\xe5\x85\x83'.decode(), r.text)
     topup = 0
@@ -124,7 +128,7 @@ def metering(balance, topup, energy_real):
     return price
 
 def balance_notify(balance):
-    global mail_balance
+    global mail_balance, balance_low, mail_host, mail_port, mail_user, mail_pass, mail_from_addr, mail_to_addrs
     if balance <= mail_balance:
         mail_text = f'Low balance: {balance:.2f}'
         try:
@@ -152,6 +156,7 @@ def balance_notify(balance):
                 pass
     elif balance > balance_low:
         mail_balance = balance_low
+    return
 
 def comm_task():
     global s, msg
@@ -188,9 +193,13 @@ def comm_read():
             log(f'Read data failed ({attempt}).')
             attempt -= 1
             time.sleep(1)
+    return
 
-if __name__ == '__main__':
-    # Load config
+def load_config():
+    global meter_user, meter_pass, price_tab, balance_low, data_intv, clock_offset, power_max, energy_err_max
+    global host, port, max_connect, proxy
+    global mail_host, mail_port, mail_user, mail_pass
+    global mail_from_addr, mail_to_addrs
     with open(cfg_file, 'r') as f:
         cfg = yaml.safe_load(f)
     # Energy Meter Config
@@ -215,7 +224,13 @@ if __name__ == '__main__':
     # Mail Address
     mail_from_addr = cfg.get('mail_from_addr', mail_from_addr)
     mail_to_addrs = cfg.get('mail_to_addrs', mail_to_addrs)
+    return
 
+if __name__ == '__main__':
+    # Load config
+    load_config()
+    meter_user_old = meter_user
+    meter_pass_old = meter_pass
     # Task selection
     if len(sys.argv) == 2:
         if sys.argv[1] == 'read':
@@ -266,22 +281,21 @@ if __name__ == '__main__':
         log('Task start success.')
         # Main loop
         while True:
-            if not cookie:
-                try:
-                    cookie = login(meter_user, meter_pass)
-                except:
-                    cookie = {}
-                    log('Login failed.')
-                else:
-                    log('Login success.')
+            try:
+                cookie = login()
+            except:
+                cookie = {}
+            if cookie:
+                log('Login success.')
+            else:
+                log('Login failed.')
             while cookie:
                 try:
-                    balance = get_balance(cookie)
-                    topup = get_topup(cookie)
-                    energy_real = get_energy(cookie)
+                    balance = get_balance()
+                    topup = get_topup()
+                    energy_real = get_energy()
                 except:
                     cookie = {}
-                    break
                 else:
                     price = metering(balance, topup, energy_real)
                     balance_notify(balance)
@@ -296,4 +310,13 @@ if __name__ == '__main__':
                     print(f'{t}: {mail_balance:4d} CNY {balance:7.2f} CNY, {cost:8.2f} CNY, {price:6.4f} CNY/kWh, {energy:9.3f} kWh, {energy_real:8.2f} kWh, {power:5.2f} kW')
                     while time.localtime().tm_min == tm.tm_min or (time.localtime().tm_min - clock_offset) % data_intv:
                         time.sleep(1)
-            time.sleep(10)
+                    load_config()
+                    if meter_user_old != meter_user or meter_pass_old != meter_pass:
+                        meter_user_old = meter_user
+                        meter_pass_old = meter_pass
+                        break
+            else:
+                time.sleep(10)
+                load_config()
+                meter_user_old = meter_user
+                meter_pass_old = meter_pass
