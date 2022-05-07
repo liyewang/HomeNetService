@@ -33,9 +33,9 @@ proxy = None
 
 # File Path
 energy_meter_path = os.path.dirname(os.path.abspath(__file__))
-data_path = f'{energy_meter_path}/EnergyMeter'
-log_path = f'{energy_meter_path}/EnergyMeter.log'
-cfg_file = f'{energy_meter_path}/EnergyMeterCfg.yaml'
+data_path = os.path.join(energy_meter_path, 'EnergyMeter')
+log_path = os.path.join(energy_meter_path, 'EnergyMeter.log')
+cfg_file = os.path.join(energy_meter_path, 'EnergyMeterCfg.yaml')
 
 # Mail Server
 mail_host = 'smtp.qq.com'

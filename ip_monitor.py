@@ -13,11 +13,11 @@ import yaml
 
 # File Path
 ip_monitor_path = os.path.dirname(os.path.abspath(__file__))
-ip_store_path = f'{ip_monitor_path}/ip_address'
-log_path = f'{ip_monitor_path}/ip_monitor.log'
-cfg_file = f'{ip_monitor_path}/ip_monitor_cfg.yaml'
+ip_store_path = os.path.join(ip_monitor_path, 'ip_address')
+log_path = os.path.join(ip_monitor_path, 'ip_monitor.log')
+cfg_file = os.path.join(ip_monitor_path, 'ip_monitor_cfg.yaml')
 cert_path = '/root/IPsec_Certs'
-cert_info_path = f'{cert_path}/cert_info'
+cert_info_path = os.path.join(cert_path, 'cert_info')
 ipsec_conf_path = '/etc/ipsec.conf'
 
 # Mail Server
@@ -123,6 +123,7 @@ if __name__ == '__main__':
         cfg = yaml.safe_load(f)
     # File Path
     cert_path = cfg.get('cert_path', cert_path)
+    cert_info_path = cfg.get('cert_info_path', os.path.join(cert_path, 'cert_info'))
     ipsec_conf_path = cfg.get('ipsec_conf_path', ipsec_conf_path)
     # Mail Server
     mail_host = cfg.get('mail_host', mail_host)

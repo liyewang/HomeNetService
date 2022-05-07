@@ -19,8 +19,8 @@ rst_free = min_free * 2
 
 # File Path
 cam_rec_path = os.path.dirname(os.path.abspath(__file__))
-log_path = f'{cam_rec_path}/CamRec.log'
-cfg_file = f'{cam_rec_path}/CamRecCfg.yaml'
+log_path = os.path.join(cam_rec_path, 'CamRec.log')
+cfg_file = os.path.join(cam_rec_path, 'CamRecCfg.yaml')
 
 def log(msg):
     print(msg)
