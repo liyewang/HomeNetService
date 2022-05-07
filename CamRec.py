@@ -41,6 +41,10 @@ def rec_purge(cam_name, rec_dst, max_size, max_days):
         if os.path.isfile(item_path):
             m = re.search(f'^{cam_name}_(\d{{14}})\.mp4$', item)
             if m:
+                try:
+                    this_time = time.mktime(time.strptime(m.group(1), r'%Y%m%d%H%M%S'))
+                except:
+                    continue
                 while size > 0:
                     if max_size > 0:
                         size += os.lstat(item_path).st_size
@@ -48,7 +52,7 @@ def rec_purge(cam_name, rec_dst, max_size, max_days):
                             size = -1
                             continue
                     if max_days > 0:
-                        days = (time.time() - time.mktime(time.strptime(m.group(1), r'%Y%m%d%H%M%S'))) / (3600 * 24)
+                        days = (last_time - this_time) / (3600 * 24)
                         if days > max_days:
                             size = -1
                             continue
@@ -60,6 +64,7 @@ def rec_purge(cam_name, rec_dst, max_size, max_days):
                         except:
                             log(f'Delete file [{item_path}] failed.')
                     else:
+                        last_time = this_time
                         size += os.lstat(item_path).st_size
                         if size <= 0:
                             size = 1
